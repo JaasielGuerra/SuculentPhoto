@@ -1,5 +1,7 @@
 package com.example.suculentphoto.retrofit.pojo;
 
+import androidx.annotation.NonNull;
+
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
@@ -39,5 +41,10 @@ public class SintomaBasico {
 
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
+    }
+
+    @Override
+    public String toString() {
+        return sintoma;
     }
 }

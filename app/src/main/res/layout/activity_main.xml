@@ -102,6 +102,7 @@
         </LinearLayout>
 
         <RadioGroup
+            android:id="@+id/estadoPlanta"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
@@ -132,14 +133,15 @@
                 android:layout_height="match_parent">
 
                 <Spinner
-                    android:id="@+id/spinner2"
+                    android:id="@+id/listaSintomas"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:spinnerMode="dialog" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <ImageButton
-                android:id="@+id/imageButton"
+                android:id="@+id/botonAgregarSintoma"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
@@ -154,6 +156,7 @@
             android:layout_height="wrap_content">
 
             <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/textoConsejo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Consejo" />
@@ -161,11 +164,10 @@
 
 
         <Button
-            android:id="@+id/btnGuardar"
+            android:id="@+id/btnGuardarFotos"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Registrar fotos"
-            android:onClick="consultarSintomas"/>
+            android:text="Registrar fotos"/>
 
     </LinearLayout>
 

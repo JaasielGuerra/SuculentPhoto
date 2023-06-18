@@ -2,9 +2,13 @@ package com.example.suculentphoto;
 
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.suculentphoto.retrofit.APIClient;
@@ -20,6 +24,8 @@ import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
+    private Spinner spinnerSintomas;
+
     private AlertDialog modalFoto;
     private AlertDialog modalSintomaNuevo;
 
@@ -29,6 +35,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        init();
+        consultarSintomas();
+    }
+
+    private void init() {
 
         View vistaModalFoto = getLayoutInflater().inflate(R.layout.dlg_tomar_foto, null);
         modalFoto = new AlertDialog.Builder(MainActivity.this)
@@ -42,8 +54,40 @@ public class MainActivity extends AppCompatActivity {
                 .setView(vistaModalSintomaNuevo)
                 .create();
 
+        spinnerSintomas = findViewById(R.id.listaSintomas);
+
         //implementacion del servicio de consulta API
         apirestSuculentPhoto = APIClient.getClient().create(APIRESTSuculentPhoto.class);
+    }
+
+    private void consultarSintomas() {
+
+        apirestSuculentPhoto.getListSintomas().enqueue(new Callback<RespuestaAPI<List<SintomaBasico>>>() {
+            @Override
+            public void onResponse(@NonNull Call<RespuestaAPI<List<SintomaBasico>>> call, @NonNull Response<RespuestaAPI<List<SintomaBasico>>> response) {
+
+                RespuestaAPI<List<SintomaBasico>> body = response.body();
+                assert body != null;
+                List<SintomaBasico> sintomasBasicosList = body.getData();
+
+                Log.println(Log.INFO, "Sintomas", "Se ha consultado sintomas al servicio REST...");
+                cargarListaASpinnerSintomas(sintomasBasicosList);
+
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<RespuestaAPI<List<SintomaBasico>>> call, @NonNull Throwable t) {
+                Log.println(Log.ERROR, "Error consulta sintomas", t.getMessage());
+            }
+        });
+
+    }
+
+    private void cargarListaASpinnerSintomas(List<SintomaBasico> sintomasBasicosList ){
+
+        ArrayAdapter<SintomaBasico> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, sintomasBasicosList);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerSintomas.setAdapter(adapter);
     }
 
 
@@ -64,34 +108,8 @@ public class MainActivity extends AppCompatActivity {
         this.modalSintomaNuevo.show();
     }
 
-    public void cerrarModalNuevoSintoma(View view){
+    public void cerrarModalNuevoSintoma(View view) {
         this.modalSintomaNuevo.dismiss();
     }
 
-    public void consultarSintomas(View view){
-
-        apirestSuculentPhoto.getListSintomas().enqueue(new Callback<RespuestaAPI<List<SintomaBasico>>>() {
-            @Override
-            public void onResponse(Call<RespuestaAPI<List<SintomaBasico>>> call, Response<RespuestaAPI<List<SintomaBasico>>> response) {
-
-                RespuestaAPI<List<SintomaBasico>> body = response.body();
-
-                assert body != null;
-
-                body.getData()
-                        .forEach(item->{
-                            System.out.println(item.getIdSintoma());
-                            System.out.println(item.getSintoma());
-                            System.out.println(item.getDescripcion());
-                        });
-
-            }
-
-            @Override
-            public void onFailure(Call<RespuestaAPI<List<SintomaBasico>>> call, Throwable t) {
-                System.out.println("error :" + t.getMessage());
-            }
-        });
-
-    }
 }
