@@ -164,7 +164,8 @@
             android:id="@+id/btnGuardar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Registrar fotos" />
+            android:text="Registrar fotos"
+            android:onClick="consultarSintomas"/>
 
     </LinearLayout>
 

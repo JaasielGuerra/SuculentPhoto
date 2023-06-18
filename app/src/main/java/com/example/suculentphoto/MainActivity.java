@@ -1,16 +1,29 @@
 package com.example.suculentphoto;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.suculentphoto.retrofit.APIClient;
+import com.example.suculentphoto.retrofit.APIRESTSuculentPhoto;
+import com.example.suculentphoto.retrofit.pojo.RespuestaAPI;
+import com.example.suculentphoto.retrofit.pojo.SintomaBasico;
+
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class MainActivity extends AppCompatActivity {
 
     private AlertDialog modalFoto;
     private AlertDialog modalSintomaNuevo;
+
+    APIRESTSuculentPhoto apirestSuculentPhoto;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,6 +41,9 @@ public class MainActivity extends AppCompatActivity {
                 .setTitle("Registrar síntoma")
                 .setView(vistaModalSintomaNuevo)
                 .create();
+
+        //implementacion del servicio de consulta API
+        apirestSuculentPhoto = APIClient.getClient().create(APIRESTSuculentPhoto.class);
     }
 
 
@@ -50,5 +66,32 @@ public class MainActivity extends AppCompatActivity {
 
     public void cerrarModalNuevoSintoma(View view){
         this.modalSintomaNuevo.dismiss();
+    }
+
+    public void consultarSintomas(View view){
+
+        apirestSuculentPhoto.getListSintomas().enqueue(new Callback<RespuestaAPI<List<SintomaBasico>>>() {
+            @Override
+            public void onResponse(Call<RespuestaAPI<List<SintomaBasico>>> call, Response<RespuestaAPI<List<SintomaBasico>>> response) {
+
+                RespuestaAPI<List<SintomaBasico>> body = response.body();
+
+                assert body != null;
+
+                body.getData()
+                        .forEach(item->{
+                            System.out.println(item.getIdSintoma());
+                            System.out.println(item.getSintoma());
+                            System.out.println(item.getDescripcion());
+                        });
+
+            }
+
+            @Override
+            public void onFailure(Call<RespuestaAPI<List<SintomaBasico>>> call, Throwable t) {
+                System.out.println("error :" + t.getMessage());
+            }
+        });
+
     }
 }
