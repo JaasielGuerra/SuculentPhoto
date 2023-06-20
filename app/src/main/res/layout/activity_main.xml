@@ -109,18 +109,18 @@
 
 
             <RadioButton
-                android:id="@+id/radioButton5"
+                android:id="@+id/radioBtnSaludable"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Saludable" />
+                android:text="SALUDABLE"/>
 
             <RadioButton
-                android:id="@+id/radioButton6"
+                android:id="@+id/radioBtnEnferma"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Enferma" />
+                android:text="ENFERMA"/>
         </RadioGroup>
 
         <LinearLayout

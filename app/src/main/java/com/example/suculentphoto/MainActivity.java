@@ -6,6 +6,8 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -28,13 +30,20 @@ import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String ESTADO_SALUDABLE = "SALUDABLE";
+    private static final String ESTADO_ENFERMA = "ENFERMA";
+
     private List<SintomaBasico> sintomasList;
-    private Spinner spinnerSintomas;
     private ImageButton botonAgregarSintoma;
     private TextInputEditText textSintoma;
     private TextInputEditText textDescripcionSintoma;
     private Button btnCancelarSintoma;
     private Button btnRegistrarSintoma;
+
+    private RadioGroup estadoPlanta;
+    private RadioButton radioBtnEnferma;
+    private Spinner spinnerSintomas;
+    private TextInputEditText textoConsejo;
 
     private AlertDialog modalFoto;
     private AlertDialog modalSintomaNuevo;
@@ -48,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
 
         init();
         consultarSintomas();
+        resetForm();
     }
 
     private void init() {
@@ -74,6 +84,12 @@ public class MainActivity extends AppCompatActivity {
         botonAgregarSintoma.setOnClickListener(v -> mostrarModalNuevoSintoma());
         btnCancelarSintoma.setOnClickListener(v -> cerrarModalNuevoSintoma());
         btnRegistrarSintoma.setOnClickListener(v -> registrarNuevoSintoma());
+
+        estadoPlanta = findViewById(R.id.estadoPlanta);
+        radioBtnEnferma = findViewById(R.id.radioBtnEnferma);
+        textoConsejo = findViewById(R.id.textoConsejo);
+
+        estadoPlanta.setOnCheckedChangeListener((group, checkedId) -> alternarEstadoSalud(checkedId));
 
         //implementacion del servicio de consulta API
         apirestSuculentPhoto = APIClient.getClient().create(APIRESTSuculentPhoto.class);
@@ -113,6 +129,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    private void resetForm(){
+        textoConsejo.setText("");
+        radioBtnEnferma.setChecked(true);
+
+        if(sintomasList != null && sintomasList.size() > 0){
+            spinnerSintomas.setSelection(0);
+        }
     }
 
     private void cargarSintomasListASpinnerSintomas() {
@@ -179,6 +204,24 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    public void alternarEstadoSalud(int checkId){
+
+        RadioButton radioButtonSeleccionado = findViewById(checkId);
+        String valorSeleccionado = radioButtonSeleccionado.getText().toString();
+
+        if(valorSeleccionado.equals(ESTADO_SALUDABLE)){
+            botonAgregarSintoma.setVisibility(View.GONE);
+            spinnerSintomas.setVisibility(View.GONE);
+            textoConsejo.setVisibility(View.GONE);
+        }
+
+        if(valorSeleccionado.equals(ESTADO_ENFERMA)){
+            botonAgregarSintoma.setVisibility(View.VISIBLE);
+            spinnerSintomas.setVisibility(View.VISIBLE);
+            textoConsejo.setVisibility(View.VISIBLE);
+        }
     }
 
     public void tomarFoto1(View view) {
