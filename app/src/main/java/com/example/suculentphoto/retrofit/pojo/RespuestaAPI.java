@@ -1,9 +1,12 @@
 package com.example.suculentphoto.retrofit.pojo;
 
+import com.google.gson.Gson;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
-import java.util.List;
+import java.io.IOException;
+
+import okhttp3.ResponseBody;
 
 public class RespuestaAPI<T> {
 
@@ -17,7 +20,29 @@ public class RespuestaAPI<T> {
 
     @SerializedName("errors")
     @Expose
-    private List<String> errors;
+    private String[] errors;
+
+    public static RespuestaAPI mapearRespuestaErrorDesde(ResponseBody errorBody) throws IOException {
+        Gson gson = new Gson();
+        RespuestaAPI respuestaAPI = gson.fromJson(errorBody.string(), RespuestaAPI.class);
+        return respuestaAPI;
+    }
+
+    public static String construirMensajeErrorDesde(ResponseBody errorBody) throws IOException {
+
+        RespuestaAPI respuestaAPI = RespuestaAPI.mapearRespuestaErrorDesde(errorBody);
+
+        StringBuilder mensajeError = new StringBuilder();
+        mensajeError.append(respuestaAPI.getMessage());
+
+        for (String error : respuestaAPI.getErrors()){
+            mensajeError
+                    .append("\n\t")
+                    .append(error);
+        }
+
+        return mensajeError.toString();
+    }
 
     public String getMessage() {
         return message;
@@ -35,11 +60,11 @@ public class RespuestaAPI<T> {
         this.data = data;
     }
 
-    public List<String> getErrors() {
+    public String[]  getErrors() {
         return errors;
     }
 
-    public void setErrors(List<String> errors) {
+    public void setErrors(String[]  errors) {
         this.errors = errors;
     }
 }

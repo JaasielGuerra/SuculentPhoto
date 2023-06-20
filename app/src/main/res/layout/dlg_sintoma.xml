@@ -13,9 +13,21 @@
         android:layout_height="wrap_content">
 
         <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/textSintoma"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Ingrese sintoma" />
+            android:hint="Ingrese síntoma"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/textDescripcionSintoma"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Descripción" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <LinearLayout
@@ -24,15 +36,14 @@
         android:orientation="horizontal">
 
         <Button
-            android:id="@+id/btnCancelar"
+            android:id="@+id/btnCancelarSintoma"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Cancelar"
-            android:onClick="cerrarModalNuevoSintoma"/>
+            android:text="Cancelar"/>
 
         <Button
-            android:id="@+id/btnAceptar"
+            android:id="@+id/btnRegistrarSintoma"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
