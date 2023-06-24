@@ -1,17 +1,21 @@
 package com.example.suculentphoto;
 
 import android.app.AlertDialog;
+import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.suculentphoto.retrofit.APIClient;
@@ -19,10 +23,14 @@ import com.example.suculentphoto.retrofit.APIRESTSuculentPhoto;
 import com.example.suculentphoto.retrofit.pojo.RespuestaAPI;
 import com.example.suculentphoto.retrofit.pojo.SintomaBasico;
 import com.example.suculentphoto.util.DialogosUtil;
+import com.example.suculentphoto.util.ToastUtil;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -32,6 +40,22 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String ESTADO_SALUDABLE = "SALUDABLE";
     private static final String ESTADO_ENFERMA = "ENFERMA";
+
+    private final int CAPTURA_IMAGEN = 1;
+    private int idBotonActualFoto;
+    private Bitmap fotoActualTomada;
+    private Map<Integer, Bitmap> fotosTomadas;
+
+    private ImageButton btnfoto1;
+    private ImageButton btnfoto2;
+    private ImageButton btnfoto3;
+    private ImageButton btnfoto4;
+    private ImageButton btnfoto5;
+    private ImageButton btnfoto6;
+
+    private ImageView previsualizacionImgSuculenta;
+    private Button btnCancelarFoto;
+    private Button btnAceptarFoto;
 
     private List<SintomaBasico> sintomasList;
     private ImageButton botonAgregarSintoma;
@@ -44,6 +68,8 @@ public class MainActivity extends AppCompatActivity {
     private RadioButton radioBtnEnferma;
     private Spinner spinnerSintomas;
     private TextInputEditText textoConsejo;
+
+    private Button btnGuardarFotos;
 
     private AlertDialog modalFoto;
     private AlertDialog modalSintomaNuevo;
@@ -74,6 +100,28 @@ public class MainActivity extends AppCompatActivity {
                 .setView(vistaModalSintomaNuevo)
                 .create();
 
+        btnfoto1 = findViewById(R.id.btnfoto1);
+        btnfoto2 = findViewById(R.id.btnfoto2);
+        btnfoto3 = findViewById(R.id.btnfoto3);
+        btnfoto4 = findViewById(R.id.btnfoto4);
+        btnfoto5 = findViewById(R.id.btnfoto5);
+        btnfoto6 = findViewById(R.id.btnfoto6);
+
+        btnfoto1.setOnClickListener(this::mostrarModalTomarFoto);
+        btnfoto2.setOnClickListener(this::mostrarModalTomarFoto);
+        btnfoto3.setOnClickListener(this::mostrarModalTomarFoto);
+        btnfoto4.setOnClickListener(this::mostrarModalTomarFoto);
+        btnfoto5.setOnClickListener(this::mostrarModalTomarFoto);
+        btnfoto6.setOnClickListener(this::mostrarModalTomarFoto);
+
+        previsualizacionImgSuculenta = vistaModalFoto.findViewById(R.id.previsualizacionImgSuculenta);
+        btnCancelarFoto = vistaModalFoto.findViewById(R.id.btnCancelarFoto);
+        btnAceptarFoto = vistaModalFoto.findViewById(R.id.btnAceptarFoto);
+
+        previsualizacionImgSuculenta.setOnClickListener(v -> levantarCamara());
+        btnAceptarFoto.setOnClickListener(v -> aceptarTomaFotoModal());
+        btnCancelarFoto.setOnClickListener(v -> cerrarModalTomarFoto());
+
         botonAgregarSintoma = findViewById(R.id.botonAgregarSintoma);
         spinnerSintomas = findViewById(R.id.listaSintomas);
         textSintoma = vistaModalSintomaNuevo.findViewById(R.id.textSintoma);
@@ -90,6 +138,10 @@ public class MainActivity extends AppCompatActivity {
         textoConsejo = findViewById(R.id.textoConsejo);
 
         estadoPlanta.setOnCheckedChangeListener((group, checkedId) -> alternarEstadoSalud(checkedId));
+
+        btnGuardarFotos = findViewById(R.id.btnGuardarFotos);
+
+        btnGuardarFotos.setOnClickListener(v -> registrarFotosSuculenta());
 
         //implementacion del servicio de consulta API
         apirestSuculentPhoto = APIClient.getClient().create(APIRESTSuculentPhoto.class);
@@ -131,13 +183,18 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void resetForm(){
+    private void resetForm() {
         textoConsejo.setText("");
         radioBtnEnferma.setChecked(true);
 
-        if(sintomasList != null && sintomasList.size() > 0){
+        if (sintomasList != null && sintomasList.size() > 0) {
             spinnerSintomas.setSelection(0);
         }
+
+        //mapa donde se guardan las fotos tomadas
+        fotosTomadas = new HashMap<>();
+
+        fotoActualTomada = null;
     }
 
     private void cargarSintomasListASpinnerSintomas() {
@@ -206,34 +263,122 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void alternarEstadoSalud(int checkId){
+    public void alternarEstadoSalud(int checkId) {
 
         RadioButton radioButtonSeleccionado = findViewById(checkId);
         String valorSeleccionado = radioButtonSeleccionado.getText().toString();
 
-        if(valorSeleccionado.equals(ESTADO_SALUDABLE)){
+        if (valorSeleccionado.equals(ESTADO_SALUDABLE)) {
             botonAgregarSintoma.setVisibility(View.GONE);
             spinnerSintomas.setVisibility(View.GONE);
             textoConsejo.setVisibility(View.GONE);
         }
 
-        if(valorSeleccionado.equals(ESTADO_ENFERMA)){
+        if (valorSeleccionado.equals(ESTADO_ENFERMA)) {
             botonAgregarSintoma.setVisibility(View.VISIBLE);
             spinnerSintomas.setVisibility(View.VISIBLE);
             textoConsejo.setVisibility(View.VISIBLE);
         }
     }
 
-    public void tomarFoto1(View view) {
-        this.modalFoto.show();
+    private void mostrarModalTomarFoto(View view) {
+
+        ToastUtil.showToastCorto(this, "Tomar " + view.getContentDescription());
+
+        //salvar el id del boton para saber que foto se esta tomando
+        idBotonActualFoto = view.getId();
+
+        //poner el icono de tomar foto
+        previsualizacionImgSuculenta.setImageResource(obtenerRecursoFotoSegunBotonActual());
+
+        //si ya hay una foto, ponerla en la previsualizacion
+        Bitmap imagenTomada = fotosTomadas.get(idBotonActualFoto);
+        if (imagenTomada != null) {
+            previsualizacionImgSuculenta.setImageBitmap(imagenTomada);
+        }
+
+        modalFoto.setTitle("Tomar " + view.getContentDescription());
+        modalFoto.show();
     }
 
-    public void cerrarModalTomaFoto(View view) {
-        this.modalFoto.dismiss();
+    private int obtenerRecursoFotoSegunBotonActual() {
+
+        if (idBotonActualFoto == R.id.btnfoto1) {
+            return R.drawable.foto_1;
+        } else if (idBotonActualFoto == R.id.btnfoto2) {
+            return R.drawable.foto_2;
+        } else if (idBotonActualFoto == R.id.btnfoto3) {
+            return R.drawable.foto_3;
+        } else if (idBotonActualFoto == R.id.btnfoto4) {
+            return R.drawable.foto_4;
+        } else if (idBotonActualFoto == R.id.btnfoto5) {
+            return R.drawable.foto_5;
+        } else if (idBotonActualFoto == R.id.btnfoto6) {
+            return R.drawable.foto_6;
+        }
+
+        throw new RuntimeException("Ningúna opción hizo match al escoger el recurso según botón presionado");
     }
 
-    public void aceptarTomaFotoModal(View view) {
-        Toast.makeText(MainActivity.this, "¡Gracias! Tu apoyo, es de mucho valor para mi :)", Toast.LENGTH_LONG)
-                .show();
+    private void levantarCamara() {
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        startActivityForResult(intent, CAPTURA_IMAGEN);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == CAPTURA_IMAGEN && resultCode == RESULT_OK) {
+            assert data != null;
+            fotoActualTomada = obtenerFotoSuculenta(data);
+            mostrarFotoActualEnPrevisualizacionModal();
+        }
+    }
+
+    private Bitmap obtenerFotoSuculenta(Intent data) {
+        Bundle extras = data.getExtras();
+        return (Bitmap) extras.get("data");
+    }
+
+    private void mostrarFotoActualEnPrevisualizacionModal() {
+        previsualizacionImgSuculenta.setImageBitmap(fotoActualTomada);
+    }
+
+    private void aceptarTomaFotoModal() {
+
+        //si no hay foto, pedir que la tome
+        if (fotoActualTomada == null) {
+            DialogosUtil.mostrarAlerta(this, "Tomar foto", "Aún no ha tomado una foto.");
+            return;
+        }
+
+        mostrarFotoTomadaEnBotonFotoActual();
+
+        //guardar la foto en el mapa
+        fotosTomadas.put(idBotonActualFoto, fotoActualTomada);
+
+        //reiniciar
+        fotoActualTomada = null;
+
+        modalFoto.dismiss();
+    }
+
+    private void mostrarFotoTomadaEnBotonFotoActual() {
+        ImageButton btnFotoActual = findViewById(idBotonActualFoto);
+        btnFotoActual.setImageBitmap(fotoActualTomada);
+    }
+
+    private void cerrarModalTomarFoto() {
+        modalFoto.dismiss();
+    }
+
+    private void registrarFotosSuculenta() {
+
+        System.out.println("FOTOS");
+        Set<Map.Entry<Integer, Bitmap>> entries = fotosTomadas.entrySet();
+        for (Map.Entry<Integer, Bitmap> item : entries) {
+            System.out.println("Item: " + item);
+        }
     }
 }
