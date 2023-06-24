@@ -26,12 +26,17 @@ import com.example.suculentphoto.util.DialogosUtil;
 import com.example.suculentphoto.util.ToastUtil;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -195,6 +200,14 @@ public class MainActivity extends AppCompatActivity {
         fotosTomadas = new HashMap<>();
 
         fotoActualTomada = null;
+
+        //resetear los botones de las fotos
+        btnfoto1.setImageResource(R.drawable.foto_no_tomada);
+        btnfoto2.setImageResource(R.drawable.foto_no_tomada);
+        btnfoto3.setImageResource(R.drawable.foto_no_tomada);
+        btnfoto4.setImageResource(R.drawable.foto_no_tomada);
+        btnfoto5.setImageResource(R.drawable.foto_no_tomada);
+        btnfoto6.setImageResource(R.drawable.foto_no_tomada);
     }
 
     private void cargarSintomasListASpinnerSintomas() {
@@ -265,8 +278,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void alternarEstadoSalud(int checkId) {
 
-        RadioButton radioButtonSeleccionado = findViewById(checkId);
-        String valorSeleccionado = radioButtonSeleccionado.getText().toString();
+        String valorSeleccionado = obtenerSeleccionEstadoSalud(checkId);
 
         if (valorSeleccionado.equals(ESTADO_SALUDABLE)) {
             botonAgregarSintoma.setVisibility(View.GONE);
@@ -279,6 +291,12 @@ public class MainActivity extends AppCompatActivity {
             spinnerSintomas.setVisibility(View.VISIBLE);
             textoConsejo.setVisibility(View.VISIBLE);
         }
+    }
+
+    private String obtenerSeleccionEstadoSalud(int checkId){
+        RadioButton radioButtonSeleccionado = findViewById(checkId);
+        String valorSeleccionado = radioButtonSeleccionado.getText().toString();
+        return valorSeleccionado;
     }
 
     private void mostrarModalTomarFoto(View view) {
@@ -375,10 +393,106 @@ public class MainActivity extends AppCompatActivity {
 
     private void registrarFotosSuculenta() {
 
-        System.out.println("FOTOS");
+        if(fotosTomadas.isEmpty()){
+            DialogosUtil.mostrarAlerta(MainActivity.this, "SIN FOTOS", "Parece que aún no ha tomado ningúna foto.");
+            return;
+        }
+
+        List<MultipartBody.Part> listaFotosParts = crearListaFotosComoMultipartBodyPart();
+        RequestBody requestBodyIdSintoma = crearRequestBodyTextPlainIdSintoma();
+        RequestBody requestBodyConsejo = crearRequestBodyTextPlainConsejo();
+
+        apirestSuculentPhoto.postRegistrarSuculenta(
+                requestBodyIdSintoma,
+                requestBodyConsejo,
+                listaFotosParts
+        ).enqueue(new Callback<RespuestaAPI>() {
+            @Override
+            public void onResponse(@NonNull Call<RespuestaAPI> call, @NonNull Response<RespuestaAPI> response) {
+
+
+                if (!response.isSuccessful()) {
+
+                    try {
+
+                        RespuestaAPI respuestaAPI = RespuestaAPI.mapearRespuestaErrorDesde(response.errorBody());
+                        DialogosUtil.mostrarAlertaError(MainActivity.this, respuestaAPI);
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    return;
+                }
+
+                RespuestaAPI body = response.body();
+                assert body != null;
+
+                resetForm();
+                DialogosUtil.mostrarAlerta(MainActivity.this, "Registro exitoso!", body.getMessage());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<RespuestaAPI> call, @NonNull Throwable t) {
+                DialogosUtil.mostrarAlerta(MainActivity.this, "ERROR registrando suculenta", t.getMessage());
+            }
+        });
+    }
+
+
+    private List<MultipartBody.Part> crearListaFotosComoMultipartBodyPart() {
+
+        List<MultipartBody.Part> listaMultipartBodyPart = new ArrayList<>();
+
+        List<byte[]> listaFotos = obtenerListaFotosComoByteArray();
+        for (int i = 0; i < listaFotos.size(); i++) {
+
+            byte[] item = listaFotos.get(i);
+            listaMultipartBodyPart.add(bytesToMultipartBody(item, "foto_" + i + 1));
+        }
+
+        return listaMultipartBodyPart;
+    }
+
+    private List<byte[]> obtenerListaFotosComoByteArray() {
+
+        List<byte[]> listaFotos = new ArrayList<>();
+
         Set<Map.Entry<Integer, Bitmap>> entries = fotosTomadas.entrySet();
         for (Map.Entry<Integer, Bitmap> item : entries) {
-            System.out.println("Item: " + item);
+            byte[] bytes = bitmapToByteArray(item.getValue());
+            listaFotos.add(bytes);
         }
+
+        return listaFotos;
+    }
+
+    private byte[] bitmapToByteArray(Bitmap bitmap) {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+        return stream.toByteArray();
+    }
+
+    private MultipartBody.Part bytesToMultipartBody(byte[] bytes, String fileName) {
+        RequestBody requestBody = RequestBody.create(MediaType.parse("image/*"), bytes);
+        return MultipartBody.Part.createFormData("fotos", fileName, requestBody);
+    }
+
+    private RequestBody crearRequestBodyTextPlainIdSintoma() {
+
+        String estadoSalud = obtenerSeleccionEstadoSalud(estadoPlanta.getCheckedRadioButtonId());
+
+        // si se selecciona SALUDABLE, entonces se manda el id precargado para sintoma saludable
+        if(estadoSalud.equals(ESTADO_SALUDABLE)){
+            return RequestBody.create(MediaType.parse("text/plain"), ESTADO_SALUDABLE);
+        }
+
+        SintomaBasico sintomaBasico = sintomasList.get(spinnerSintomas.getSelectedItemPosition());
+        return RequestBody.create(MediaType.parse("text/plain"), sintomaBasico.getIdSintoma());
+    }
+
+    private RequestBody crearRequestBodyTextPlainConsejo() {
+        String consejo = textoConsejo.getText().toString();
+        return RequestBody.create(MediaType.parse("text/plain"), consejo);
     }
 }
