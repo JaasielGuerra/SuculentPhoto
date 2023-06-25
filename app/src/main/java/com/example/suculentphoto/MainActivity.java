@@ -293,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private String obtenerSeleccionEstadoSalud(int checkId){
+    private String obtenerSeleccionEstadoSalud(int checkId) {
         RadioButton radioButtonSeleccionado = findViewById(checkId);
         String valorSeleccionado = radioButtonSeleccionado.getText().toString();
         return valorSeleccionado;
@@ -393,7 +393,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void registrarFotosSuculenta() {
 
-        if(fotosTomadas.isEmpty()){
+        if (fotosTomadas.isEmpty()) {
             DialogosUtil.mostrarAlerta(MainActivity.this, "SIN FOTOS", "Parece que aún no ha tomado ningúna foto.");
             return;
         }
@@ -401,6 +401,8 @@ public class MainActivity extends AppCompatActivity {
         List<MultipartBody.Part> listaFotosParts = crearListaFotosComoMultipartBodyPart();
         RequestBody requestBodyIdSintoma = crearRequestBodyTextPlainIdSintoma();
         RequestBody requestBodyConsejo = crearRequestBodyTextPlainConsejo();
+
+        AlertDialog alertDialogCargando = DialogosUtil.mostrarAlertaCargando(this);
 
         apirestSuculentPhoto.postRegistrarSuculenta(
                 requestBodyIdSintoma,
@@ -410,6 +412,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(@NonNull Call<RespuestaAPI> call, @NonNull Response<RespuestaAPI> response) {
 
+                //cerrar alerta cargando
+                alertDialogCargando.dismiss();
 
                 if (!response.isSuccessful()) {
 
@@ -434,6 +438,10 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(@NonNull Call<RespuestaAPI> call, @NonNull Throwable t) {
+
+                //cerrar alerta cargando
+                alertDialogCargando.dismiss();
+
                 DialogosUtil.mostrarAlerta(MainActivity.this, "ERROR registrando suculenta", t.getMessage());
             }
         });
@@ -483,7 +491,7 @@ public class MainActivity extends AppCompatActivity {
         String estadoSalud = obtenerSeleccionEstadoSalud(estadoPlanta.getCheckedRadioButtonId());
 
         // si se selecciona SALUDABLE, entonces se manda el id precargado para sintoma saludable
-        if(estadoSalud.equals(ESTADO_SALUDABLE)){
+        if (estadoSalud.equals(ESTADO_SALUDABLE)) {
             return RequestBody.create(MediaType.parse("text/plain"), ESTADO_SALUDABLE);
         }
 

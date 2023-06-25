@@ -32,4 +32,13 @@ public class DialogosUtil {
         alertDialog.setButton("OK", (dialog, which) -> alertDialog.cancel());
         alertDialog.show();
     }
+
+    public static AlertDialog mostrarAlertaCargando(Context context){
+
+        final AlertDialog alertDialog = new AlertDialog.Builder(context).create();
+        alertDialog.setTitle("PROCESANDO...");
+        alertDialog.setMessage("Por favor espere....");
+        alertDialog.show();
+        return  alertDialog;
+    }
 }
