@@ -14,7 +14,8 @@ public class APIClient {
     /**
      * Conexion al dominio donde se encuntra la API
      */
-    private static String API_URL = "http://192.168.1.67:8080";
+    //private static String API_URL = "http://192.168.1.67:8080";
+    private static String API_URL = "http://ec2-3-134-12-80.us-east-2.compute.amazonaws.com:8080";
 
     /**
      * Atributo static para definiri el time out por defecto del HttpClient al conectar al servidor.
