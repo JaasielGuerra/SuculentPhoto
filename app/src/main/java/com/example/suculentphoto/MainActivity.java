@@ -3,7 +3,12 @@ package com.example.suculentphoto;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -17,6 +22,8 @@ import android.widget.Spinner;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
+import androidx.exifinterface.media.ExifInterface;
 
 import com.example.suculentphoto.retrofit.APIClient;
 import com.example.suculentphoto.retrofit.APIRESTSuculentPhoto;
@@ -27,6 +34,7 @@ import com.example.suculentphoto.util.ToastUtil;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,8 +56,10 @@ public class MainActivity extends AppCompatActivity {
 
     private final int CAPTURA_IMAGEN = 1;
     private int idBotonActualFoto;
-    private Bitmap fotoActualTomada;
+    private Bitmap fotoOriginalActualTomada;
+    private Bitmap miniaturaActualTomada;
     private Map<Integer, Bitmap> fotosTomadas;
+    private String rutaFotoTemporalEnDisco;
 
     private ImageButton btnfoto1;
     private ImageButton btnfoto2;
@@ -199,7 +209,9 @@ public class MainActivity extends AppCompatActivity {
         //mapa donde se guardan las fotos tomadas
         fotosTomadas = new HashMap<>();
 
-        fotoActualTomada = null;
+        fotoOriginalActualTomada = null;
+        miniaturaActualTomada = null;
+        rutaFotoTemporalEnDisco = null;
 
         //resetear los botones de las fotos
         btnfoto1.setImageResource(R.drawable.foto_no_tomada);
@@ -340,7 +352,40 @@ public class MainActivity extends AppCompatActivity {
 
     private void levantarCamara() {
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        startActivityForResult(intent, CAPTURA_IMAGEN);
+
+        if (intent.resolveActivity(getPackageManager()) != null) {
+
+            File archivoTemporal = null;
+
+            try {
+
+                archivoTemporal = crearArchivoTemporal();
+
+            } catch (IOException ex) {
+                DialogosUtil.mostrarAlerta(this, "ERROR", ex.getMessage());
+                return;
+            }
+
+            Uri fotoUri = FileProvider.getUriForFile(this, "com.example.suculentphoto.fileprovider", archivoTemporal);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, fotoUri);
+            startActivityForResult(intent, CAPTURA_IMAGEN);
+        }
+    }
+
+    private File crearArchivoTemporal() throws IOException {
+
+        //String nombreArchivo = "captura_temp_";
+        String nombreArchivo = "captura_temp.jpg";
+        File directorio = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+
+        // Crea el archivo temporal en el directorio de imágenes de la aplicación
+        //File imagenTemporal = File.createTempFile(nombreArchivo, ".jpg", directorio);
+        File imagenTemporal = new File(directorio, nombreArchivo);
+        imagenTemporal.createNewFile();
+
+        rutaFotoTemporalEnDisco = imagenTemporal.getAbsolutePath();
+
+        return imagenTemporal;
     }
 
     @Override
@@ -348,43 +393,113 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == CAPTURA_IMAGEN && resultCode == RESULT_OK) {
-            assert data != null;
-            fotoActualTomada = obtenerFotoSuculenta(data);
-            mostrarFotoActualEnPrevisualizacionModal();
+
+            Bitmap bitmapOriginal = obtenerFotoOriginalSuculenta();
+            fotoOriginalActualTomada = rotateImageIfRequired(bitmapOriginal, rutaFotoTemporalEnDisco);
+            miniaturaActualTomada = obtenerMiniaturaSuculenta(fotoOriginalActualTomada);
+
+            mostrarFotoOriginalActualEnPrevisualizacionModal();
         }
     }
 
-    private Bitmap obtenerFotoSuculenta(Intent data) {
-        Bundle extras = data.getExtras();
-        return (Bitmap) extras.get("data");
+    private Bitmap rotateImageIfRequired(Bitmap bitmap, String imagePath) {
+        ExifInterface exifInterface;
+        try {
+            exifInterface = new ExifInterface(imagePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return bitmap;
+        }
+
+        int orientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+        int rotationAngle = 0;
+        switch (orientation) {
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                rotationAngle = 90;
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                rotationAngle = 180;
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                rotationAngle = 270;
+                break;
+            default:
+                return bitmap;
+        }
+
+        Matrix matrix = new Matrix();
+        matrix.postRotate(rotationAngle);
+
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 
-    private void mostrarFotoActualEnPrevisualizacionModal() {
-        previsualizacionImgSuculenta.setImageBitmap(fotoActualTomada);
+
+    private Bitmap obtenerFotoOriginalSuculenta() {
+
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(rutaFotoTemporalEnDisco, options);
+
+        int anchoOriginal = options.outWidth;
+        int altoOriginal = options.outHeight;
+
+        int anchoDeseado = 800; // Ancho deseado para la imagen reducida
+
+
+        float proporcion = (float) anchoOriginal / anchoDeseado;
+        int altoDeseado = Math.round(altoOriginal / proporcion);
+
+        // Decodificar el archivo en un Bitmap con las dimensiones reducidas
+        options.inJustDecodeBounds = false;
+        options.inSampleSize = calcularFactorEscala(anchoOriginal, altoOriginal, anchoDeseado, altoDeseado);
+
+        return BitmapFactory.decodeFile(rutaFotoTemporalEnDisco, options);
+    }
+
+    // Función para calcular el factor de escala adecuado para la reducción
+    private int calcularFactorEscala(int anchoOriginal, int altoOriginal, int anchoDeseado, int altoDeseado) {
+        int factorEscala = 1;
+        if (altoOriginal > altoDeseado || anchoOriginal > anchoDeseado) {
+            final int mitadAncho = anchoOriginal / 2;
+            final int mitadAlto = altoOriginal / 2;
+
+            while ((mitadAlto / factorEscala) >= altoDeseado && (mitadAncho / factorEscala) >= anchoDeseado) {
+                factorEscala *= 2;
+            }
+        }
+        return factorEscala;
+    }
+
+    private Bitmap obtenerMiniaturaSuculenta(Bitmap bitmapOriginal) {
+        return Bitmap.createScaledBitmap(bitmapOriginal, 150, 150, false);
+    }
+
+    private void mostrarFotoOriginalActualEnPrevisualizacionModal() {
+        previsualizacionImgSuculenta.setImageBitmap(fotoOriginalActualTomada);
     }
 
     private void aceptarTomaFotoModal() {
 
         //si no hay foto, pedir que la tome
-        if (fotoActualTomada == null) {
+        if (fotoOriginalActualTomada == null) {
             DialogosUtil.mostrarAlerta(this, "Tomar foto", "Aún no ha tomado una foto.");
             return;
         }
 
-        mostrarFotoTomadaEnBotonFotoActual();
+        mostrarMiniaturaFotoTomadaEnBotonFotoActual();
 
-        //guardar la foto en el mapa
-        fotosTomadas.put(idBotonActualFoto, fotoActualTomada);
+        //guardar la foto original en el mapa
+        fotosTomadas.put(idBotonActualFoto, fotoOriginalActualTomada);
 
         //reiniciar
-        fotoActualTomada = null;
+        fotoOriginalActualTomada = null;
 
         modalFoto.dismiss();
     }
 
-    private void mostrarFotoTomadaEnBotonFotoActual() {
+    private void mostrarMiniaturaFotoTomadaEnBotonFotoActual() {
         ImageButton btnFotoActual = findViewById(idBotonActualFoto);
-        btnFotoActual.setImageBitmap(fotoActualTomada);
+        btnFotoActual.setImageBitmap(miniaturaActualTomada);
     }
 
     private void cerrarModalTomarFoto() {
