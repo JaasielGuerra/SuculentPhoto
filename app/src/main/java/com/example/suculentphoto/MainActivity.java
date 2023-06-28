@@ -164,9 +164,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void consultarSintomas() {
 
+        AlertDialog alertDialogCargando = DialogosUtil.mostrarAlertaCargando(this);
+
         apirestSuculentPhoto.getListSintomas().enqueue(new Callback<RespuestaAPI<List<SintomaBasico>>>() {
             @Override
             public void onResponse(@NonNull Call<RespuestaAPI<List<SintomaBasico>>> call, @NonNull Response<RespuestaAPI<List<SintomaBasico>>> response) {
+
+                //cerrar alerta cargando
+                alertDialogCargando.dismiss();
 
                 if (!response.isSuccessful()) {
 
@@ -192,6 +197,9 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(@NonNull Call<RespuestaAPI<List<SintomaBasico>>> call, @NonNull Throwable t) {
+                //cerrar alerta cargando
+                alertDialogCargando.dismiss();
+
                 DialogosUtil.mostrarAlerta(MainActivity.this, "ERROR consultar síntomas", t.getMessage());
             }
         });
@@ -247,9 +255,14 @@ public class MainActivity extends AppCompatActivity {
         sintoma.setSintoma(textSintoma.getText().toString());
         sintoma.setDescripcion(textDescripcionSintoma.getText().toString());
 
+        AlertDialog alertDialogCargando = DialogosUtil.mostrarAlertaCargando(this);
+
         apirestSuculentPhoto.postRegistrarSintoma(sintoma).enqueue(new Callback<RespuestaAPI<SintomaBasico>>() {
             @Override
             public void onResponse(@NonNull Call<RespuestaAPI<SintomaBasico>> call, @NonNull Response<RespuestaAPI<SintomaBasico>> response) {
+
+                //cerrar alerta cargando
+                alertDialogCargando.dismiss();
 
                 if (!response.isSuccessful()) {
 
@@ -280,6 +293,9 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(@NonNull Call<RespuestaAPI<SintomaBasico>> call, @NonNull Throwable t) {
+
+                //cerrar alerta cargando
+                alertDialogCargando.dismiss();
 
                 DialogosUtil.mostrarAlerta(MainActivity.this, "ERROR registro síntoma", t.getMessage());
 
