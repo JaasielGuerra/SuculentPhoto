@@ -369,23 +369,23 @@ public class MainActivity extends AppCompatActivity {
     private void levantarCamara() {
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 
-        if (intent.resolveActivity(getPackageManager()) != null) {
+        //if (intent.resolveActivity(getPackageManager()) != null) {
 
-            File archivoTemporal = null;
+        File archivoTemporal = null;
 
-            try {
+        try {
 
-                archivoTemporal = crearArchivoTemporal();
+            archivoTemporal = crearArchivoTemporal();
 
-            } catch (IOException ex) {
-                DialogosUtil.mostrarAlerta(this, "ERROR", ex.getMessage());
-                return;
-            }
-
-            Uri fotoUri = FileProvider.getUriForFile(this, "com.example.suculentphoto.fileprovider", archivoTemporal);
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, fotoUri);
-            startActivityForResult(intent, CAPTURA_IMAGEN);
+        } catch (IOException ex) {
+            DialogosUtil.mostrarAlerta(this, "ERROR", ex.getMessage());
+            return;
         }
+
+        Uri fotoUri = FileProvider.getUriForFile(this, "com.example.suculentphoto.fileprovider", archivoTemporal);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, fotoUri);
+        startActivityForResult(intent, CAPTURA_IMAGEN);
+        //}
     }
 
     private File crearArchivoTemporal() throws IOException {
